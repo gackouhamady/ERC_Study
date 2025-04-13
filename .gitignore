@@ -1,0 +1,37 @@
+# .gitignore
+
+# Ignore global OS stuff
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb_checkpoints/
+
+# Environments
+.env
+.venv
+env/
+venv/
+*.env
+
+# Jupyter outputs
+*.ipynb_checkpoints/
+
+# System
+*.log
+*.bak
+*.tmp
+
+# IDEs
+.vscode/
+.idea/
+
+# OS user folders
+../../Users/
+../../Documents/
+../../Downloads/
