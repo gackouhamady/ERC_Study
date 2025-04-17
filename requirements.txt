@@ -1,0 +1,49 @@
+# Core ML Libraries
+torchvision
+torchaudio
+
+# PyTorch CPU
+torch==1.10.0+cpu
+torchvision==0.11.1+cpu
+torchaudio==0.10.0+cpu
+# Extra index for PyTorch CPU
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# PyTorch Geometric dependencies (CPU-only, compatible with torch 1.10.0)
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
+# Find links for PyG CPU wheels
+--find-links https://data.pyg.org/whl/torch-1.10.0+cpu.html
+
+# PyTorch Geometric main library
+torch-geometric
+
+
+# Transformers and NLP
+transformers
+numpy
+pandas
+tqdm
+spacy
+nltk
+sentence-transformers
+
+# Audio Processing
+librosa
+pydub
+
+# Visual Processing
+opencv-python
+face-alignment
+mediapipe
+
+# GNN Libraries (PyG part)
+torch-geometric
+
+# Evaluation and Visualization
+scikit-learn
+wandb
+matplotlib
+seaborn

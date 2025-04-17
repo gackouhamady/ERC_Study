@@ -538,33 +538,24 @@ class MaskedEdgeAttention(nn.Module):
         lengths -> length of the sequences in the batch
         """
         attn_type = 'attn1'
-
         if attn_type == 'attn1':
-
             scale = self.scalar(M)
-            # scale = torch.tanh(scale)
-            alpha = F.softmax(scale, dim=0).permute(1, 2, 0)
+            alpha = F.softmax(scale, dim=0).permute(1, 2, 0)  # batch, seq_len, seq_len
             
-            #if torch.cuda.is_available():
-            if not self.no_cuda:
-                mask = Variable(torch.ones(alpha.size()) * 1e-10).detach().cuda()
-                mask_copy = Variable(torch.zeros(alpha.size())).detach().cuda()
-                
-            else:
-                mask = Variable(torch.ones(alpha.size()) * 1e-10).detach()
-                mask_copy = Variable(torch.zeros(alpha.size())).detach()
+            # Create properly sized masks
+            mask = torch.ones(alpha.size(), device=alpha.device) * 1e-10
+            mask_copy = torch.zeros(alpha.size(), device=alpha.device)
             
-            edge_ind_ = []
-            for i, j in enumerate(edge_ind):
-                for x in j:
-                    edge_ind_.append([i, x[0], x[1]])
+            # Process edge indices with bounds checking
+            for j in range(len(edge_ind)):  # For each batch item
+                for x in edge_ind[j]:  # For each edge in this batch item
+                    if x[0] < alpha.size(1) and x[1] < alpha.size(2):  # Check bounds
+                        mask[j, x[0], x[1]] = 1
+                        mask_copy[j, x[0], x[1]] = 1
             
-            edge_ind_ = np.array(edge_ind_).transpose()
-            mask[edge_ind_] = 1
-            mask_copy[edge_ind_] = 1
             masked_alpha = alpha * mask
             _sums = masked_alpha.sum(-1, keepdim=True)
-            scores = masked_alpha.div(_sums) * mask_copy
+            scores = masked_alpha.div(_sums + 1e-10) * mask_copy
             return scores
 
         elif attn_type == 'attn2':
@@ -803,7 +794,7 @@ class GraphNetwork(torch.nn.Module):
 
     def forward(self, x, edge_index, edge_norm, edge_type, seq_lengths, umask, nodal_attn, avec):
         
-        out = self.conv1(x, edge_index, edge_type, edge_norm)
+        out = self.conv1(x, edge_index, edge_type)
         out = self.conv2(out, edge_index)
         emotions = torch.cat([x, out], dim=-1)
         log_prob = classify_node_features(emotions, seq_lengths, umask, self.matchatt, self.linear, self.dropout, self.smax_fc, nodal_attn, avec, self.no_cuda)
@@ -930,7 +921,7 @@ class CNNFeatureExtractor(nn.Module):
     def forward(self, x, umask):
         num_utt, batch, num_words = x.size()
 
-        x = x.type(LongTensor)  # (num_utt, batch, num_words)
+        x = x.type(torch.LongTensor)  # (num_utt, batch, num_words)
         x = x.view(-1, num_words)  # (num_utt, batch, num_words) -> (num_utt * batch, num_words)
         emb = self.embedding(x)  # (num_utt * batch, num_words) -> (num_utt * batch, num_words, 300)
         emb = emb.transpose(-2,
@@ -941,7 +932,7 @@ class CNNFeatureExtractor(nn.Module):
         concated = torch.cat(pooled, 1)
         features = F.relu(self.fc(self.dropout(concated)))  # (num_utt * batch, 150) -> (num_utt * batch, 100)
         features = features.view(num_utt, batch, -1)  # (num_utt * batch, 100) -> (num_utt, batch, 100)
-        mask = umask.unsqueeze(-1).type(FloatTensor)  # (batch, num_utt) -> (batch, num_utt, 1)
+        mask = umask.unsqueeze(-1).type(torch.FloatTensor)  # (batch, num_utt) -> (batch, num_utt, 1)
         mask = mask.transpose(0, 1)  # (batch, num_utt, 1) -> (num_utt, batch, 1)
         mask = mask.repeat(1, 1, self.feature_dim)  # (num_utt, batch, 1) -> (num_utt, batch, 100)
         features = (features * mask)  # (num_utt, batch, 100) -> (num_utt, batch, 100)
